@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.NotificationMapper">
+
+  <!-- 通知视图映射：id 使用「类型-记录ID」字符串，保证跨类型唯一，供前端 v-for key 使用。 -->
+  <resultMap id="NotificationResultMap" type="com.cainiao.forum.model.Notification">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="type" jdbcType="VARCHAR" property="type" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+    <result column="articleId" jdbcType="BIGINT" property="articleId" />
+    <result column="articleTitle" jdbcType="VARCHAR" property="articleTitle" />
+    <result column="createTime" jdbcType="TIMESTAMP" property="createTime" />
+    <association property="actor" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+                 columnPrefix="u_"/>
+  </resultMap>
+
+  <!--
+    聚合四类通知（实时查询，不落地）：
+    1. reply   ：别人回复了当前用户的帖子；
+    2. like    ：别人点赞了当前用户的帖子；
+    3. collect ：别人收藏了当前用户的帖子；
+    4. report  ：管理员处置了当前用户提交的举报（actor 为空，展示处理结果）。
+  -->
+  <select id="selectActivityNotifications" resultMap="NotificationResultMap">
+    select * from (
+      select
+        concat('reply-', ar.id) as id,
+        'reply' as type,
+        '帖子收到新回复' as title,
+        ar.content,
+        ar.articleId,
+        a.title as articleTitle,
+        ar.createTime,
+        u.id as u_id,
+        u.avatarUrl as u_avatarUrl,
+        u.nickname as u_nickname,
+        u.username as u_username,
+        u.gender as u_gender
+      from t_article_reply ar
+      inner join t_article a on ar.articleId = a.id
+      inner join t_user u on ar.postUserId = u.id
+      where a.userId = #{userId,jdbcType=BIGINT}
+        and ar.postUserId != #{userId,jdbcType=BIGINT}
+        and ar.deleteState = 0
+        and a.deleteState = 0
+
+      union all
+
+      select
+        concat('like-', al.id),
+        'like',
+        '帖子收到新点赞',
+        '赞了你的帖子',
+        al.articleId,
+        a.title,
+        al.createTime,
+        u.id,
+        u.avatarUrl,
+        u.nickname,
+        u.username,
+        u.gender
+      from t_article_like al
+      inner join t_article a on al.articleId = a.id
+      inner join t_user u on al.userId = u.id
+      where a.userId = #{userId,jdbcType=BIGINT}
+        and al.userId != #{userId,jdbcType=BIGINT}
+        and a.deleteState = 0
+
+      union all
+
+      select
+        concat('collect-', ac.id),
+        'collect',
+        '帖子被收藏',
+        '收藏了你的帖子',
+        ac.articleId,
+        a.title,
+        ac.createTime,
+        u.id,
+        u.avatarUrl,
+        u.nickname,
+        u.username,
+        u.gender
+      from t_article_collect ac
+      inner join t_article a on ac.articleId = a.id
+      inner join t_user u on ac.userId = u.id
+      where a.userId = #{userId,jdbcType=BIGINT}
+        and ac.userId != #{userId,jdbcType=BIGINT}
+        and a.deleteState = 0
+
+      union all
+
+      select
+        concat('report-', r.id),
+        'report',
+        '举报处理结果',
+        r.handleResult,
+        r.articleId,
+        a.title,
+        r.updateTime,
+        null,
+        null,
+        null,
+        null,
+        null
+      from t_report r
+      inner join t_article a on r.articleId = a.id
+      where r.reporterId = #{userId,jdbcType=BIGINT}
+        and r.status in (1, 2)
+    ) t
+    order by t.createTime desc
+    limit 0, #{limit,jdbcType=INTEGER}
+  </select>
+</mapper>

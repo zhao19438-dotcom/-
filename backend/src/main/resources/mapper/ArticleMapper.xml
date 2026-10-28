@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ArticleMapper">
+  <!-- 基础字段映射：把 t_article 表中的列映射到 Article 对象属性。 -->
+  <resultMap id="BaseResultMap" type="com.cainiao.forum.model.Article">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="boardId" jdbcType="BIGINT" property="boardId" />
+    <result column="userId" jdbcType="BIGINT" property="userId" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="visitCount" jdbcType="INTEGER" property="visitCount" />
+    <result column="replyCount" jdbcType="INTEGER" property="replyCount" />
+    <result column="likeCount" jdbcType="INTEGER" property="likeCount" />
+    <result column="topState" jdbcType="TINYINT" property="topState" />
+    <result column="essenceState" jdbcType="TINYINT" property="essenceState" />
+    <result column="state" jdbcType="TINYINT" property="state" />
+    <result column="deleteState" jdbcType="TINYINT" property="deleteState" />
+    <result column="createTime" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="updateTime" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="bizType" jdbcType="VARCHAR" property="bizType" />
+    <result column="extJson" jdbcType="LONGVARCHAR" property="extJson" />
+  </resultMap>
+  <!-- 帖子正文 content 是较长文本，单独放在扩展 resultMap 中。 -->
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.cainiao.forum.model.Article">
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+  </resultMap>
+  <!-- 公共基础列，多个 SQL 通过 include 复用，减少重复书写。 -->
+  <sql id="Base_Column_List">
+    id, boardId, userId, title, visitCount, replyCount, likeCount, topState, essenceState, state, deleteState,
+    createTime, updateTime, bizType, extJson
+  </sql>
+  <!-- 较长文本列单独定义，查询详情时再一起取出。 -->
+  <sql id="Blob_Column_List">
+    content
+  </sql>
+  <!-- 根据帖子主键查询帖子，包含正文内容。 -->
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="ResultMapWithBLOBs">
+    select 
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from t_article
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <!-- 全字段插入，适合所有字段都已经准备好的场景。 -->
+  <insert id="insert" parameterType="com.cainiao.forum.model.Article" useGeneratedKeys="true" keyProperty="id">
+    insert into t_article (id, boardId, userId, 
+      title, visitCount, replyCount, 
+      likeCount, state, deleteState, 
+      createTime, updateTime, content, bizType, extJson
+      )
+    values (#{id,jdbcType=BIGINT}, #{boardId,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, 
+      #{title,jdbcType=VARCHAR}, #{visitCount,jdbcType=INTEGER}, #{replyCount,jdbcType=INTEGER}, 
+      #{likeCount,jdbcType=INTEGER}, #{state,jdbcType=TINYINT}, #{deleteState,jdbcType=TINYINT}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{content,jdbcType=LONGVARCHAR},
+      #{bizType,jdbcType=VARCHAR}, #{extJson,jdbcType=LONGVARCHAR}
+      )
+  </insert>
+  <!-- 选择性插入：只有不为 null 的属性才写入数据库。 -->
+  <insert id="insertSelective" parameterType="com.cainiao.forum.model.Article" useGeneratedKeys="true" keyProperty="id">
+    insert into t_article
+    <!-- trim 会自动去掉最后一个逗号，避免动态 SQL 语法错误。 -->
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="boardId != null">
+        boardId,
+      </if>
+      <if test="userId != null">
+        userId,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="visitCount != null">
+        visitCount,
+      </if>
+      <if test="replyCount != null">
+        replyCount,
+      </if>
+      <if test="likeCount != null">
+        likeCount,
+      </if>
+      <if test="state != null">
+        state,
+      </if>
+      <if test="deleteState != null">
+        deleteState,
+      </if>
+      <if test="createTime != null">
+        createTime,
+      </if>
+      <if test="updateTime != null">
+        updateTime,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+      <if test="bizType != null">
+        bizType,
+      </if>
+      <if test="extJson != null">
+        extJson,
+      </if>
+    </trim>
+    <!-- values 部分和上面的列名一一对应，同样只拼接非空字段。 -->
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="boardId != null">
+        #{boardId,jdbcType=BIGINT},
+      </if>
+      <if test="userId != null">
+        #{userId,jdbcType=BIGINT},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="visitCount != null">
+        #{visitCount,jdbcType=INTEGER},
+      </if>
+      <if test="replyCount != null">
+        #{replyCount,jdbcType=INTEGER},
+      </if>
+      <if test="likeCount != null">
+        #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="state != null">
+        #{state,jdbcType=TINYINT},
+      </if>
+      <if test="deleteState != null">
+        #{deleteState,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="bizType != null">
+        #{bizType,jdbcType=VARCHAR},
+      </if>
+      <if test="extJson != null">
+        #{extJson,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <!-- 选择性更新：只更新传入对象中不为 null 的字段。 -->
+  <update id="updateByPrimaryKeySelective" parameterType="com.cainiao.forum.model.Article">
+    update t_article
+    <!-- set 会自动处理动态字段后的多余逗号。 -->
+    <set>
+      <if test="boardId != null">
+        boardId = #{boardId,jdbcType=BIGINT},
+      </if>
+      <if test="userId != null">
+        userId = #{userId,jdbcType=BIGINT},
+      </if>
+      <if test="title != null">
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="visitCount != null">
+        visitCount = #{visitCount,jdbcType=INTEGER},
+      </if>
+      <if test="replyCount != null">
+        replyCount = #{replyCount,jdbcType=INTEGER},
+      </if>
+      <if test="likeCount != null">
+        likeCount = #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="state != null">
+        state = #{state,jdbcType=TINYINT},
+      </if>
+      <if test="deleteState != null">
+        deleteState = #{deleteState,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null">
+        createTime = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        updateTime = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="content != null">
+        content = #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="bizType != null">
+        bizType = #{bizType,jdbcType=VARCHAR},
+      </if>
+      <if test="extJson != null">
+        extJson = #{extJson,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <!-- 全字段更新，包含正文 content。 -->
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.cainiao.forum.model.Article">
+    update t_article
+    set boardId = #{boardId,jdbcType=BIGINT},
+      userId = #{userId,jdbcType=BIGINT},
+      title = #{title,jdbcType=VARCHAR},
+      visitCount = #{visitCount,jdbcType=INTEGER},
+      replyCount = #{replyCount,jdbcType=INTEGER},
+      likeCount = #{likeCount,jdbcType=INTEGER},
+      state = #{state,jdbcType=TINYINT},
+      deleteState = #{deleteState,jdbcType=TINYINT},
+      createTime = #{createTime,jdbcType=TIMESTAMP},
+      updateTime = #{updateTime,jdbcType=TIMESTAMP},
+      content = #{content,jdbcType=LONGVARCHAR},
+      bizType = #{bizType,jdbcType=VARCHAR},
+      extJson = #{extJson,jdbcType=LONGVARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <!-- 全字段更新基础信息，不包含正文 content。 -->
+  <update id="updateByPrimaryKey" parameterType="com.cainiao.forum.model.Article">
+    update t_article
+    set boardId = #{boardId,jdbcType=BIGINT},
+      userId = #{userId,jdbcType=BIGINT},
+      title = #{title,jdbcType=VARCHAR},
+      visitCount = #{visitCount,jdbcType=INTEGER},
+      replyCount = #{replyCount,jdbcType=INTEGER},
+      likeCount = #{likeCount,jdbcType=INTEGER},
+      topState = #{topState,jdbcType=TINYINT},
+      essenceState = #{essenceState,jdbcType=TINYINT},
+      state = #{state,jdbcType=TINYINT},
+      deleteState = #{deleteState,jdbcType=TINYINT},
+      createTime = #{createTime,jdbcType=TIMESTAMP},
+      updateTime = #{updateTime,jdbcType=TIMESTAMP},
+      bizType = #{bizType,jdbcType=VARCHAR},
+      extJson = #{extJson,jdbcType=LONGVARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <!-- 以下为原子计数更新：直接在数据库当前值上加减，避免先查后改的并发丢更新问题。 -->
+
+  <!-- 访问量原子加 1，只对未删除帖子生效。 -->
+  <update id="increaseVisitCount">
+    update t_article
+    set visitCount = visitCount + 1
+    where id = #{id,jdbcType=BIGINT} and deleteState = 0
+  </update>
+
+  <!-- 点赞数原子加 1，只对未删除帖子生效。 -->
+  <update id="increaseLikeCount">
+    update t_article
+    set likeCount = likeCount + 1
+    where id = #{id,jdbcType=BIGINT} and deleteState = 0
+  </update>
+
+  <!-- 点赞数原子减 1，greatest 保证不会减成负数。 -->
+  <update id="decreaseLikeCount">
+    update t_article
+    set likeCount = greatest(likeCount - 1, 0)
+    where id = #{id,jdbcType=BIGINT} and deleteState = 0
+  </update>
+
+  <!-- 回复数原子加 1，只对未删除帖子生效。 -->
+  <update id="increaseReplyCount">
+    update t_article
+    set replyCount = replyCount + 1
+    where id = #{id,jdbcType=BIGINT} and deleteState = 0
+  </update>
+
+  <!-- 回复数原子减 1，greatest 保证不会减成负数。 -->
+  <update id="decreaseReplyCount">
+    update t_article
+    set replyCount = greatest(replyCount - 1, 0)
+    where id = #{id,jdbcType=BIGINT} and deleteState = 0
+  </update>
+
+  <!-- 设置置顶状态，后台管理专用，不依赖实体全量更新。 -->
+  <update id="updateTopState" parameterType="com.cainiao.forum.model.Article">
+    update t_article
+    set topState = #{topState,jdbcType=TINYINT},
+      updateTime = #{updateTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <!-- 设置精华状态，后台管理专用。 -->
+  <update id="updateEssenceState" parameterType="com.cainiao.forum.model.Article">
+    update t_article
+    set essenceState = #{essenceState,jdbcType=TINYINT},
+      updateTime = #{updateTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

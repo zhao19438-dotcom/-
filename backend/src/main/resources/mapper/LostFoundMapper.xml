@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.LostFoundMapper">
+  <!-- 失物招领扩展表字段映射。 -->
+  <resultMap id="BaseResultMap" type="com.cainiao.forum.model.LostFound">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="articleId" jdbcType="BIGINT" property="articleId" />
+    <result column="lostType" jdbcType="VARCHAR" property="lostType" />
+    <result column="itemName" jdbcType="VARCHAR" property="itemName" />
+    <result column="contact" jdbcType="VARCHAR" property="contact" />
+    <result column="location" jdbcType="VARCHAR" property="location" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="createTime" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+
+  <!-- 公共列清单。 -->
+  <sql id="Base_Column_List">
+    id, articleId, lostType, itemName, contact, location, status, createTime
+  </sql>
+
+  <!-- 插入失物招领扩展记录。 -->
+  <insert id="insert" parameterType="com.cainiao.forum.model.LostFound" useGeneratedKeys="true" keyProperty="id">
+    insert into t_lost_found (articleId, lostType, itemName, contact, location, status, createTime)
+    values (#{articleId,jdbcType=BIGINT}, #{lostType,jdbcType=VARCHAR}, #{itemName,jdbcType=VARCHAR},
+      #{contact,jdbcType=VARCHAR}, #{location,jdbcType=VARCHAR}, #{status,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+
+  <!-- 按帖子 ID 查询扩展信息。 -->
+  <select id="selectByArticleId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from t_lost_found
+    where articleId = #{articleId,jdbcType=BIGINT}
+  </select>
+  <update id="updateDetails">
+    update t_lost_found set lostType = #{lostType}, itemName = #{itemName},
+      contact = #{contact}, location = #{location} where articleId = #{articleId}
+  </update>
+  <delete id="deleteByArticleId">delete from t_lost_found where articleId = #{articleId}</delete>
+</mapper>

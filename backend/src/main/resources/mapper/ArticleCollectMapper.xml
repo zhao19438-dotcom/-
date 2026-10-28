@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ArticleCollectMapper">
+
+  <!-- 插入收藏记录：insert ignore 配合唯一索引(articleId,userId)，重复收藏返回 0，实现幂等。 -->
+  <insert id="insertIgnore">
+    insert ignore into t_article_collect (articleId, userId, createTime)
+    values (#{articleId,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, now())
+  </insert>
+
+  <!-- 取消收藏：删除收藏记录，返回受影响行数。 -->
+  <delete id="delete">
+    delete from t_article_collect
+    where articleId = #{articleId,jdbcType=BIGINT}
+      and userId = #{userId,jdbcType=BIGINT}
+  </delete>
+
+  <!-- 查询某用户是否已收藏某帖，大于 0 表示已收藏。 -->
+  <select id="countByArticleAndUser" resultType="java.lang.Integer">
+    select count(1)
+    from t_article_collect
+    where articleId = #{articleId,jdbcType=BIGINT}
+      and userId = #{userId,jdbcType=BIGINT}
+  </select>
+
+  <!-- 分页查询用户收藏的帖子，联出作者与版块信息，按收藏时间倒序。 -->
+  <select id="selectCollectPage" resultMap="com.cainiao.forum.dao.ArticleMapper.AllInfoResultMap">
+    select
+    u.id as u_id,
+    u.avatarUrl as u_avatarUrl,
+    u.nickname as u_nickname,
+    b.id as b_id,
+    b.name as b_name,
+    a.id,
+    a.boardId,
+    a.userId,
+    a.title,
+    a.visitCount,
+    a.replyCount,
+    a.likeCount,
+    a.topState,
+    a.essenceState,
+    a.state,
+    a.createTime,
+    a.updateTime,
+    c.createTime as collectTime
+    from t_article_collect c
+    inner join t_article a on c.articleId = a.id
+    left join t_user u on a.userId = u.id
+    left join t_board b on a.boardId = b.id
+    where c.userId = #{userId,jdbcType=BIGINT}
+    and a.deleteState = 0
+    and a.state = 0 and b.deleteState = 0
+    order by c.createTime desc
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <!-- 统计用户收藏的未删除帖子总数，与列表查询条件保持一致。 -->
+  <select id="countCollectByUserId" resultType="java.lang.Integer">
+    select count(1)
+    from t_article_collect c
+    inner join t_article a on c.articleId = a.id
+    inner join t_board b on a.boardId = b.id
+    where c.userId = #{userId,jdbcType=BIGINT}
+    and a.deleteState = 0
+    and a.state = 0 and b.deleteState = 0
+  </select>
+</mapper>

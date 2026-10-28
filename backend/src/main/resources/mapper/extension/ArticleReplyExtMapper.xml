@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ArticleReplyMapper">
+  
+  <!-- 扩展映射：回复对象带上回复用户和被回复用户（楼中楼）信息。 -->
+  <resultMap id="AllInfoResultMap" type="com.cainiao.forum.model.ArticleReply" extends="BaseResultMap">
+
+    <!-- u_ 前缀的列会映射到 ArticleReply.user。 -->
+    <association property="user" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+      columnPrefix="u_"/>
+
+    <!-- ru_ 前缀的列会映射到 ArticleReply.replyUser，楼中楼展示「回复 @昵称」用。 -->
+    <association property="replyUser" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+      columnPrefix="ru_"/>
+  </resultMap>
+
+  
+  <!-- 查询某个帖子下未删除的回复列表，并带出回复者与被回复者信息。 -->
+  <select id="selectByArticleId" parameterType="java.lang.Long" resultMap="AllInfoResultMap">
+    select
+    u.id as u_id,
+    u.avatarUrl as u_avatarUrl,
+    u.nickname as u_nickname,
+    ru.id as ru_id,
+    ru.nickname as ru_nickname,
+    ar.id,
+    ar.articleId,
+    ar.postUserId,
+    ar.replyId,
+    ar.replyUserId,
+    ar.content,
+    ar.likeCount,
+    ar.state,
+    ar.createTime,
+    ar.updateTime
+    from t_article_reply ar
+    inner join t_user u on ar.postUserId = u.id
+    left join t_user ru on ar.replyUserId = ru.id
+    where ar.articleId = #{articleId,jdbcType=BIGINT}
+    and ar.deleteState = 0
+    order by ar.createTime desc
+  </select>
+
+  <!-- 回复点赞数原子加 1。 -->
+  <update id="increaseLikeCount">
+    update t_article_reply
+    set likeCount = likeCount + 1
+    where id = #{id,jdbcType=BIGINT}
+    and deleteState = 0
+  </update>
+
+  <!-- 回复点赞数原子减 1，GREATEST 保证不会减成负数。 -->
+  <update id="decreaseLikeCount">
+    update t_article_reply
+    set likeCount = GREATEST(likeCount - 1, 0)
+    where id = #{id,jdbcType=BIGINT}
+    and deleteState = 0
+  </update>
+</mapper>

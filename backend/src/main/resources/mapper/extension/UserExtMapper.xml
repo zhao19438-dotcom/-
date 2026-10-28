@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.UserMapper">
+    
+
+    
+    <!-- 根据用户名查询未删除用户，登录和注册查重使用。 -->
+    <select id="selectByUserName" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List" />
+        from t_user
+        where
+        deleteState = 0
+        AND
+        username = #{username,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 根据学号查询未删除用户，注册查重使用。 -->
+    <select id="selectByStudentNo" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List" />
+        from t_user
+        where
+        deleteState = 0
+        AND
+        studentNo = #{studentNo,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 后台用户列表，支持按用户名、学号、姓名、昵称、邮箱、手机号关键字搜索。 -->
+    <select id="selectAllForAdmin" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_user
+        <!-- where 标签会在有搜索条件时自动补 WHERE，并处理开头 and。 -->
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (
+                    username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or studentNo like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or realName like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or college like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or nickname like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or email like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or phoneNum like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                )
+            </if>
+        </where>
+        order by isAdmin desc, createTime desc
+        limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+    </select>
+
+    <!-- 后台用户总数统计，搜索条件和用户列表保持一致。 -->
+    <select id="countAllForAdmin" resultType="java.lang.Integer">
+        select count(1)
+        from t_user
+        <!-- 与 selectAllForAdmin 使用相同过滤条件，用于分页总数。 -->
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (
+                    username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or studentNo like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or realName like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or college like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or nickname like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or email like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                    or phoneNum like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
+</mapper>
+

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ArticleMapper">
+  
+  <!-- 扩展映射：帖子对象除了基础字段，还带上作者 user 和版块 board。 -->
+  <resultMap id="AllInfoResultMap" type="com.cainiao.forum.model.Article" extends="ResultMapWithBLOBs">
+    
+    <!-- columnPrefix="u_" 表示 SQL 中 u_id、u_nickname 等列会映射到 user 对象。 -->
+    <association property="user" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+                 columnPrefix="u_" />
+    
+    <!-- columnPrefix="b_" 表示 SQL 中 b_id、b_name 等列会映射到 board 对象。 -->
+    <association property="board" resultMap="com.cainiao.forum.dao.BoardMapper.BaseResultMap"
+                 columnPrefix="b_" />
+   </resultMap>
+
+  <!-- 前台帖子列表/搜索共用的列与条件片段，列表查询和总数统计保持一致。 -->
+  <sql id="Page_Query_Body">
+    from
+    t_article a
+    inner join t_user u on a.userId = u.id
+    left join t_board b on a.boardId = b.id
+    where
+    a.deleteState = 0
+    and a.state = 0
+    and b.deleteState = 0
+    <if test="boardId != null">
+      and a.boardId = #{boardId,jdbcType=BIGINT}
+    </if>
+    <if test="keyword != null and keyword != ''">
+      and (
+        a.title like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+        or a.content like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+      )
+    </if>
+  </sql>
+
+  
+  <!-- 前台帖子分页查询：版块与关键字可选，置顶优先、时间倒序。 -->
+  <select id="selectPage" resultMap="AllInfoResultMap">
+    select
+    u.id as u_id,
+    u.avatarUrl as u_avatarUrl,
+    u.nickname as u_nickname,
+    b.id as b_id,
+    b.name as b_name,
+    b.bizType as b_bizType,
+    a.id,
+    a.boardId,
+    a.userId,
+    a.title,
+    substring(a.content, 1, 600) as content,
+    a.visitCount,
+    a.replyCount,
+    a.likeCount,
+    a.topState,
+    a.essenceState,
+    a.state,
+    a.createTime,
+    a.updateTime,
+    a.bizType,
+    a.extJson
+    <include refid="Page_Query_Body" />
+    order by a.topState desc,
+    <choose>
+      <when test="orderBy == 'hot'">(a.replyCount * 3 + a.likeCount * 2 + a.visitCount) desc</when>
+      <otherwise>a.createTime desc</otherwise>
+    </choose>
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <!-- 前台帖子总数统计，条件与 selectPage 完全一致，用于计算分页页数。 -->
+  <select id="countPage" resultType="java.lang.Integer">
+    select count(1)
+    <include refid="Page_Query_Body" />
+  </select>
+
+  <!-- 查询帖子详情，额外带出作者状态和版块状态，供详情页展示与判断。 -->
+  <select id="selectDetailById" resultMap="AllInfoResultMap" parameterType="java.lang.Long">
+    select
+    u.id as u_id,
+    u.avatarUrl as u_avatarUrl,
+    u.nickname as u_nickname,
+    u.gender as u_gender,
+    u.isAdmin as u_isAdmin,
+    u.state as u_state,
+    u.deleteState as u_deleteState,
+    b.id as b_id,
+    b.name as b_name,
+    b.bizType as b_bizType,
+    b.state as b_state,
+    b.deleteState as b_deleteState,
+    a.id,
+    a.boardId,
+    a.userId,
+    a.title,
+    a.content,
+    a.visitCount,
+    a.replyCount,
+    a.likeCount,
+    a.topState,
+    a.essenceState,
+    a.state,
+    a.createTime,
+    a.updateTime,
+    a.bizType,
+    a.extJson
+    from
+    t_article a, t_user u, t_board b
+    where
+    a.userId = u.id
+    and
+    a.boardId = b.id
+    and a.deleteState = 0
+    and a.id = #{id,jdbcType=BIGINT}
+  </select>
+
+  
+  <!-- 查询某个用户发布过的帖子，个人主页使用。 -->
+  <select id="selectByUserId" resultMap="AllInfoResultMap" parameterType="java.lang.Long">
+    select
+    b.id as b_id,
+    b.name as b_name,
+    b.bizType as b_bizType,
+    a.id,
+    a.boardId,
+    a.userId,
+    a.title,
+    a.visitCount,
+    a.replyCount,
+    a.likeCount,
+    a.topState,
+    a.essenceState,
+    a.state,
+    a.createTime,
+    a.updateTime,
+    a.bizType,
+    a.extJson
+    from t_article a, t_board b
+    where a.boardId = b.id
+    and a.deleteState = 0
+    and a.userId = #{userId,jdbcType=BIGINT}
+    and a.state = 0 and b.deleteState = 0
+    order by a.createTime desc
+  </select>
+
+  <!-- 后台帖子管理列表，支持按帖子标题、作者、版块关键字搜索。 -->
+  <select id="selectAllForAdmin" resultMap="AllInfoResultMap">
+    select
+    u.id as u_id,
+    u.avatarUrl as u_avatarUrl,
+    u.nickname as u_nickname,
+    u.username as u_username,
+    b.id as b_id,
+    b.name as b_name,
+    b.bizType as b_bizType,
+    a.id,
+    a.boardId,
+    a.userId,
+    a.title,
+    a.visitCount,
+    a.replyCount,
+    a.likeCount,
+    a.topState,
+    a.essenceState,
+    a.state,
+    a.deleteState,
+    a.createTime,
+    a.updateTime,
+    a.bizType,
+    a.extJson
+    from t_article a
+    left join t_user u on a.userId = u.id
+    left join t_board b on a.boardId = b.id
+    <!-- where 标签会在有条件时自动生成 WHERE，并处理开头多余的 and。 -->
+    <where>
+      <if test="keyword != null and keyword != ''">
+        and (
+          a.title like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or u.nickname like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or u.username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or b.name like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+        )
+      </if>
+    </where>
+    order by a.deleteState asc, a.createTime desc
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <!-- 后台帖子管理总数统计，搜索条件必须和列表查询保持一致。 -->
+  <select id="countAllForAdmin" resultType="java.lang.Integer">
+    select count(1)
+    from t_article a
+    left join t_user u on a.userId = u.id
+    left join t_board b on a.boardId = b.id
+    <!-- 与 selectAllForAdmin 使用相同关键字过滤，用于计算分页总页数。 -->
+    <where>
+      <if test="keyword != null and keyword != ''">
+        and (
+          a.title like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or u.nickname like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or u.username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or b.name like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+        )
+      </if>
+    </where>
+  </select>
+</mapper>

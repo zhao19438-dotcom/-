@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.AuditLogMapper">
+  <!-- 审计日志字段映射。 -->
+  <resultMap id="BaseResultMap" type="com.cainiao.forum.model.AuditLog">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="userId" jdbcType="BIGINT" property="userId" />
+    <result column="username" jdbcType="VARCHAR" property="username" />
+    <result column="action" jdbcType="VARCHAR" property="action" />
+    <result column="targetType" jdbcType="VARCHAR" property="targetType" />
+    <result column="targetId" jdbcType="VARCHAR" property="targetId" />
+    <result column="detail" jdbcType="VARCHAR" property="detail" />
+    <result column="ip" jdbcType="VARCHAR" property="ip" />
+    <result column="createTime" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, userId, username, action, targetType, targetId, detail, ip, createTime
+  </sql>
+
+  <!-- 写入审计日志。 -->
+  <insert id="insert" parameterType="com.cainiao.forum.model.AuditLog" useGeneratedKeys="true" keyProperty="id">
+    insert into t_audit_log (userId, username, action, targetType, targetId, detail, ip, createTime)
+    values (#{userId,jdbcType=BIGINT}, #{username,jdbcType=VARCHAR}, #{action,jdbcType=VARCHAR},
+      #{targetType,jdbcType=VARCHAR}, #{targetId,jdbcType=VARCHAR}, #{detail,jdbcType=VARCHAR},
+      #{ip,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+
+  <!-- 分页查询日志，按时间倒序。 -->
+  <select id="selectPage" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from t_audit_log
+    <where>
+      <if test="keyword != null and keyword != ''">
+        and (
+          username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or action like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or detail like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+        )
+      </if>
+    </where>
+    order by createTime desc, id desc
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <!-- 日志总数统计，条件与列表保持一致。 -->
+  <select id="countAll" resultType="java.lang.Integer">
+    select count(1)
+    from t_audit_log
+    <where>
+      <if test="keyword != null and keyword != ''">
+        and (
+          username like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or action like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+          or detail like concat('%', #{keyword,jdbcType=VARCHAR}, '%')
+        )
+      </if>
+    </where>
+  </select>
+</mapper>

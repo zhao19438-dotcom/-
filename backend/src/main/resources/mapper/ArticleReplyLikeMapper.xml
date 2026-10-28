@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ArticleReplyLikeMapper">
+
+  <!-- 插入点赞记录：唯一索引冲突时忽略，保证重复点赞幂等。 -->
+  <insert id="insertIgnore">
+    insert ignore into t_article_reply_like (replyId, userId, createTime)
+    values (#{replyId,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, now())
+  </insert>
+
+  <!-- 取消点赞：删除记录，未点赞时受影响行数为 0（幂等）。 -->
+  <delete id="delete">
+    delete from t_article_reply_like
+    where replyId = #{replyId,jdbcType=BIGINT}
+      and userId = #{userId,jdbcType=BIGINT}
+  </delete>
+
+  <!-- 判断某用户是否已点赞某回复。 -->
+  <select id="countByReplyAndUser" resultType="int">
+    select count(*)
+    from t_article_reply_like
+    where replyId = #{replyId,jdbcType=BIGINT}
+      and userId = #{userId,jdbcType=BIGINT}
+  </select>
+
+  <!-- 批量查询某用户在某帖子下已点赞的回复 ID 列表。 -->
+  <select id="selectLikedReplyIds" resultType="java.lang.Long">
+    select rl.replyId
+    from t_article_reply_like rl
+    inner join t_article_reply ar on rl.replyId = ar.id
+    where ar.articleId = #{articleId,jdbcType=BIGINT}
+      and rl.userId = #{userId,jdbcType=BIGINT}
+  </select>
+</mapper>

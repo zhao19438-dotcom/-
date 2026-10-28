@@ -1,0 +1,83 @@
+spring:
+  # 应用名称，会显示在 Spring Boot 上下文和部分日志中。
+  application:
+    name: 校园论坛
+  # 控制台彩色日志输出。
+  output:
+    ansi:
+      enabled: ALWAYS
+  # 数据库连接配置，项目启动后通过这里连接 MySQL。
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/forum_db_001?characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME}
+    # 数据库账号和口令通过环境变量注入，仓库不包含本机凭据。
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # Springfox Swagger 3 与 Spring Boot 2.7 需要使用 ANT 路径匹配策略。
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+
+  # JSON 序列化配置，控制日期格式和空字段输出。
+  # time-zone 必须显式指定，否则 Jackson 默认按 UTC 输出，接口时间会比数据库少 8 小时。
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: NON_NULL
+
+  # 上传文件全局兜底限制（Controller 内还有更细的 2MB/5MB 白名单校验）。
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+
+server:
+  # Web 服务端口，浏览器访问 http://localhost:58080。
+  port: 58080
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+
+
+logging:
+  # 日志时间格式。
+  pattern:
+    dateformat: yyyy-MM-dd HH:mm:ss
+  # root 表示默认日志级别。
+  level:
+    root: info
+
+  # 日志文件输出目录，相对应用启动目录，避免落到盘符根目录。
+  file:
+    path: ./logs
+
+
+# Actuator 运行状态端点：默认只暴露 health，详情不对匿名用户开放。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+
+
+mybatis:
+  # MyBatis XML SQL 文件位置，classpath 对应 src/main/resources。
+  mapper-locations: classpath:mapper/**/*.xml
+
+
+cainiao-forum:
+  # 未登录时跳转的登录页面。
+  login:
+    url: sign-in.html
+  # 首页顶部展示的版块数量。
+  index:
+    board-num: 9
+

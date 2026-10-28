@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.ReportMapper">
+  <!-- 举报字段映射，含后台展示需要的关联字段。 -->
+  <resultMap id="BaseResultMap" type="com.cainiao.forum.model.Report">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="articleId" jdbcType="BIGINT" property="articleId" />
+    <result column="messageId" jdbcType="BIGINT" property="messageId" />
+    <result column="reporterId" jdbcType="BIGINT" property="reporterId" />
+    <result column="type" jdbcType="TINYINT" property="type" />
+    <result column="reason" jdbcType="VARCHAR" property="reason" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="handleResult" jdbcType="VARCHAR" property="handleResult" />
+    <result column="createTime" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="updateTime" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="articleTitle" jdbcType="VARCHAR" property="articleTitle" />
+    <result column="messageContent" jdbcType="VARCHAR" property="messageContent" />
+    <result column="reporterName" jdbcType="VARCHAR" property="reporterName" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, articleId, reporterId, type, reason, status, handleResult, createTime, updateTime
+  </sql>
+
+  <!-- 新增举报记录。 -->
+  <insert id="insertSelective" parameterType="com.cainiao.forum.model.Report" useGeneratedKeys="true" keyProperty="id">
+    insert into t_report
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="articleId != null">
+        articleId,
+      </if>
+      <if test="messageId != null">
+        messageId,
+      </if>
+      <if test="reporterId != null">
+        reporterId,
+      </if>
+      <if test="type != null">
+        type,
+      </if>
+      <if test="reason != null">
+        reason,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="handleResult != null">
+        handleResult,
+      </if>
+      <if test="createTime != null">
+        createTime,
+      </if>
+      <if test="updateTime != null">
+        updateTime,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="articleId != null">
+        #{articleId,jdbcType=BIGINT},
+      </if>
+      <if test="messageId != null">
+        #{messageId,jdbcType=BIGINT},
+      </if>
+      <if test="reporterId != null">
+        #{reporterId,jdbcType=BIGINT},
+      </if>
+      <if test="type != null">
+        #{type,jdbcType=TINYINT},
+      </if>
+      <if test="reason != null">
+        #{reason,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=TINYINT},
+      </if>
+      <if test="handleResult != null">
+        #{handleResult,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+
+  <!-- 后台举报列表：帖子举报带标题、私信举报带内容，待处理优先、时间倒序。 -->
+  <select id="selectPageForAdmin" resultMap="BaseResultMap">
+    select
+    r.id, r.articleId, r.messageId, r.reporterId, r.type, r.reason, r.status, r.handleResult, r.createTime, r.updateTime,
+    a.title as articleTitle,
+    m.content as messageContent,
+    u.nickname as reporterName
+    from t_report r
+    left join t_article a on r.articleId = a.id
+    left join t_message m on r.messageId = m.id
+    left join t_user u on r.reporterId = u.id
+    <where>
+      <if test="status != null">
+        and r.status = #{status,jdbcType=TINYINT}
+      </if>
+    </where>
+    order by r.status asc, r.createTime desc
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <!-- 后台举报总数统计，条件与列表保持一致。 -->
+  <select id="countAllForAdmin" resultType="java.lang.Integer">
+    select count(1)
+    from t_report r
+    <where>
+      <if test="status != null">
+        and r.status = #{status,jdbcType=TINYINT}
+      </if>
+    </where>
+  </select>
+
+  <!-- 处理举报：更新状态与处理结果。 -->
+  <update id="updateHandle">
+    update t_report
+    set status = #{status,jdbcType=TINYINT},
+      handleResult = #{handleResult,jdbcType=VARCHAR},
+      updateTime = #{updateTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <!-- 按 ID 查询举报记录。 -->
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+    select
+    r.id, r.articleId, r.messageId, r.reporterId, r.type, r.reason, r.status, r.handleResult, r.createTime, r.updateTime
+    from t_report r
+    where r.id = #{id,jdbcType=BIGINT}
+  </select>
+
+  <!-- 同一用户对同一帖子的举报次数。 -->
+  <select id="countByArticleAndUser" resultType="java.lang.Integer">
+    select count(1)
+    from t_report
+    where articleId = #{articleId,jdbcType=BIGINT}
+      and reporterId = #{reporterId,jdbcType=BIGINT}
+  </select>
+
+  <!-- 同一用户对同一条私信的举报次数。 -->
+  <select id="countByMessageAndUser" resultType="java.lang.Integer">
+    select count(1)
+    from t_report
+    where messageId = #{messageId,jdbcType=BIGINT}
+      and reporterId = #{reporterId,jdbcType=BIGINT}
+  </select>
+</mapper>

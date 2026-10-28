@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cainiao.forum.dao.MessageMapper">
+
+  
+  <!-- 扩展映射：站内信同时带出发送者 postUser 和接收者 receiveUser。 -->
+  <resultMap id="AllInfoResultMap" type="com.cainiao.forum.model.Message" extends="BaseResultMap">
+    
+    <!-- p_ 前缀列映射到发送者用户对象。 -->
+    <association property="postUser" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+                 columnPrefix="p_" />
+
+    <!-- r_ 前缀列映射到接收者用户对象。 -->
+    <association property="receiveUser" resultMap="com.cainiao.forum.dao.UserMapper.BaseResultMap"
+                 columnPrefix="r_" />
+
+  </resultMap>
+
+  
+  <!-- 查询某个用户收到的未读消息数量，首页角标使用。 -->
+  <select id="selectUnreadCount" parameterType="java.lang.Long" resultType="java.lang.Integer">
+    select count(*) from t_message
+    where state = 0
+    and deleteState = 0
+    and receiveUserId = #{receiveUserId,jdbcType=BIGINT}
+  </select>
+  
+  
+  <!-- 查询收件箱，带出发送者和接收者信息。 -->
+  <select id="selectByReceiveUserId" parameterType="java.lang.Long" resultMap="AllInfoResultMap">
+    select
+    p.id as p_id,
+    p.avatarUrl as p_avatarUrl,
+    p.nickname as p_nickname,
+    p.username as p_username,
+    p.gender as p_gender,
+    r.id as r_id,
+    r.avatarUrl as r_avatarUrl,
+    r.nickname as r_nickname,
+    r.username as r_username,
+    r.gender as r_gender,
+    m.id,
+    m.postUserId,
+    m.receiveUserId,
+    m.content,
+    m.state,
+    m.deleteState,
+    m.createTime,
+    m.updateTime
+    from t_message m
+    left join t_user p on m.postUserId = p.id
+    left join t_user r on m.receiveUserId = r.id
+    where m.deleteState = 0
+    and m.receiveUserId = #{receiveUserId,jdbcType=BIGINT}
+    order by m.createTime desc, m.state asc
+  </select>
+
+  <!-- 查询已发送站内信，带出发送者和接收者信息。 -->
+  <select id="selectByPostUserId" parameterType="java.lang.Long" resultMap="AllInfoResultMap">
+    select
+    p.id as p_id,
+    p.avatarUrl as p_avatarUrl,
+    p.nickname as p_nickname,
+    p.username as p_username,
+    p.gender as p_gender,
+    r.id as r_id,
+    r.avatarUrl as r_avatarUrl,
+    r.nickname as r_nickname,
+    r.username as r_username,
+    r.gender as r_gender,
+    m.id,
+    m.postUserId,
+    m.receiveUserId,
+    m.content,
+    m.state,
+    m.deleteState,
+    m.createTime,
+    m.updateTime
+    from t_message m
+    left join t_user p on m.postUserId = p.id
+    left join t_user r on m.receiveUserId = r.id
+    where m.deleteState = 0
+    and m.postUserId = #{postUserId,jdbcType=BIGINT}
+    order by m.createTime desc
+  </select>
+
+  <!-- 查询我与指定用户的完整会话（双向，按时间正序，聊天视图用）。 -->
+  <select id="selectConversation" resultMap="AllInfoResultMap">
+    select
+    p.id as p_id,
+    p.avatarUrl as p_avatarUrl,
+    p.nickname as p_nickname,
+    p.username as p_username,
+    p.gender as p_gender,
+    r.id as r_id,
+    r.avatarUrl as r_avatarUrl,
+    r.nickname as r_nickname,
+    r.username as r_username,
+    r.gender as r_gender,
+    m.id,
+    m.postUserId,
+    m.receiveUserId,
+    m.content,
+    m.state,
+    m.deleteState,
+    m.createTime,
+    m.updateTime
+    from t_message m
+    left join t_user p on m.postUserId = p.id
+    left join t_user r on m.receiveUserId = r.id
+    where m.deleteState = 0
+    and ((m.postUserId = #{userId,jdbcType=BIGINT} and m.receiveUserId = #{peerId,jdbcType=BIGINT})
+      or (m.postUserId = #{peerId,jdbcType=BIGINT} and m.receiveUserId = #{userId,jdbcType=BIGINT}))
+    order by m.createTime asc, m.id asc
+  </select>
+
+  <!-- 把会话中对方发给我的未读消息批量标记为已读，返回受影响行数。 -->
+  <update id="markConversationRead">
+    update t_message
+    set state = 1, updateTime = now()
+    where deleteState = 0
+    and state = 0
+    and postUserId = #{peerId,jdbcType=BIGINT}
+    and receiveUserId = #{userId,jdbcType=BIGINT}
+  </update>
+
+</mapper>

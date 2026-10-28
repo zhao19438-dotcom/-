@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.BoardMapper">
+    
+    <!-- 首页版块列表：只查询正常且未删除的版块，按 sort 升序。 -->
+    <select id="selectByNum" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        select
+        <include refid="Base_Column_List" />
+        from t_board
+        where state = 0 and deleteState = 0
+        order by sort asc
+        limit 0, #{num, jdbcType=INTEGER}
+    </select>
+
+    <select id="selectAvailable" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" /> from t_board
+        where state = 0 and deleteState = 0 order by sort asc, id asc
+    </select>
+
+    <!-- 后台版块分页列表，包含已禁用或已逻辑删除的版块，方便管理员恢复。 -->
+    <select id="selectAllForAdmin" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_board
+        order by deleteState asc, sort asc, id asc
+        limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+    </select>
+
+    <!-- 后台版块总数统计，用于计算分页。 -->
+    <select id="countAllForAdmin" resultType="java.lang.Integer">
+        select count(1)
+        from t_board
+    </select>
+</mapper>
+

@@ -1,0 +1,22 @@
+# 生产环境配置：通过 --spring.profiles.active=prod 启用。
+# 敏感信息一律通过环境变量注入，仓库中不保留任何默认口令。
+spring:
+  datasource:
+    # 数据库连接：通过 MYSQL_URL 覆盖，未设置时使用默认本机地址。
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/forum_db_001?characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    # 用户名与口令必须由环境变量提供，未设置时应用启动失败（安全兜底）。
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+
+# 生产环境关闭 Swagger 文档（SwaggerConfig 已标注 @Profile("!prod")）。
+
+# 生产日志级别收紧。
+logging:
+  level:
+    root: info
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

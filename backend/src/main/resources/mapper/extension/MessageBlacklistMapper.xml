@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cainiao.forum.dao.MessageBlacklistMapper">
+
+  <!-- 加入黑名单：唯一索引冲突时忽略，保证重复拉黑幂等。 -->
+  <insert id="insertIgnore">
+    insert ignore into t_message_blacklist (userId, blockedUserId, createTime)
+    values (#{userId,jdbcType=BIGINT}, #{blockedUserId,jdbcType=BIGINT}, now())
+  </insert>
+
+  <!-- 解除拉黑。 -->
+  <delete id="delete">
+    delete from t_message_blacklist
+    where userId = #{userId,jdbcType=BIGINT}
+      and blockedUserId = #{blockedUserId,jdbcType=BIGINT}
+  </delete>
+
+  <!-- 判断某用户是否拉黑了另一用户。 -->
+  <select id="countBy" resultType="int">
+    select count(*)
+    from t_message_blacklist
+    where userId = #{userId,jdbcType=BIGINT}
+      and blockedUserId = #{blockedUserId,jdbcType=BIGINT}
+  </select>
+
+  <!-- 黑名单列表：带出被拉黑用户的昵称与头像，供前端展示。 -->
+  <select id="selectByUserId" resultType="com.cainiao.forum.model.MessageBlacklist">
+    select
+      b.id,
+      b.userId,
+      b.blockedUserId,
+      b.createTime,
+      u.id as "blockedUser.id",
+      u.username as "blockedUser.username",
+      u.nickname as "blockedUser.nickname",
+      u.avatarUrl as "blockedUser.avatarUrl"
+    from t_message_blacklist b
+    inner join t_user u on b.blockedUserId = u.id
+    where b.userId = #{userId,jdbcType=BIGINT}
+    order by b.createTime desc
+  </select>
+
+  <!-- 两人之间（双向）最后一条未删除私信，按 ID 倒序取第一条。 -->
+  <select id="selectLastMessageBetween" resultType="com.cainiao.forum.model.Message">
+    select id, postUserId, receiveUserId, state, createTime
+    from t_message
+    where ((postUserId = #{userA,jdbcType=BIGINT} and receiveUserId = #{userB,jdbcType=BIGINT})
+        or (postUserId = #{userB,jdbcType=BIGINT} and receiveUserId = #{userA,jdbcType=BIGINT}))
+      and deleteState = 0
+    order by id desc
+    limit 1
+  </select>
+</mapper>

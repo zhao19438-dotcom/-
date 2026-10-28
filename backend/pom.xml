@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- 使用 Spring Boot 父工程，继承默认依赖版本和 Maven 插件配置。 -->
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.7.18</version>
+		<relativePath/>
+	</parent>
+
+	<groupId>com.cainiao</groupId>
+	<artifactId>cainiao-forum</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>校园论坛</name>
+	<description>校园论坛</description>
+
+	<properties>
+		<!-- 项目使用 Java 8 编译。 -->
+		<java.version>1.8</java.version>
+		<!-- Maven 编译器的源码版本和目标字节码版本。 -->
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<!-- 源码统一使用 UTF-8，支持中文页面和中文注释。 -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- 统一管理第三方依赖版本，避免多个地方重复写版本号。 -->
+		<mysql-connector.version>8.0.33</mysql-connector.version>
+		<mybatis-starter.version>2.3.0</mybatis-starter.version>
+		<druid-starter.version>1.2.16</druid-starter.version>
+		<mybatis-generator-plugin-version>1.4.1</mybatis-generator-plugin-version>
+		<springfox-boot-starter.version>3.0.0</springfox-boot-starter.version>
+	</properties>
+
+	<dependencies>
+		<!-- Spring MVC/Web 依赖，提供 Controller、内置 Tomcat 和 JSON 返回能力。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- 开发热部署工具，只在运行时使用。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Lombok 用于 @Data、@Slf4j 等注解，减少样板代码。 -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.30</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Spring Boot 测试依赖，提供 JUnit 和测试上下文。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- MySQL JDBC 驱动，用于连接 MySQL 数据库。 -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<version>${mysql-connector.version}</version>
+		</dependency>
+
+		<!-- MyBatis 与 Spring Boot 集成依赖。 -->
+		<dependency>
+			<groupId>org.mybatis.spring.boot</groupId>
+			<artifactId>mybatis-spring-boot-starter</artifactId>
+			<version>${mybatis-starter.version}</version>
+		</dependency>
+
+		<!-- Druid 数据库连接池。 -->
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid-spring-boot-starter</artifactId>
+			<version>${druid-starter.version}</version>
+		</dependency>
+
+		<!-- Springfox Swagger/OpenAPI，用于生成接口文档。 -->
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-boot-starter</artifactId>
+			<version>${springfox-boot-starter.version}</version>
+		</dependency>
+
+		<!-- Actuator 提供运行状态端点，SwaggerConfig 中也兼容了相关映射。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- commons-codec 提供 MD5 等摘要工具（存量老密码校验仍在使用）。 -->
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+		</dependency>
+
+		<!-- spring-security-crypto 提供 BCryptPasswordEncoder，只取加密能力，不引入整套 Security。 -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Spring Boot 打包插件，用于生成可运行 jar。 -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+
+			<!-- MyBatis Generator 插件，根据数据库表生成实体、Mapper 接口和 XML。 -->
+			<plugin>
+				<groupId>org.mybatis.generator</groupId>
+				<artifactId>mybatis-generator-maven-plugin</artifactId>
+				<version>${mybatis-generator-plugin-version}</version>
+				<executions>
+					<execution>
+						<id>Generate MyBatis Artifacts</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- 打印生成过程日志。 -->
+					<verbose>true</verbose>
+					<!-- 重新生成时允许覆盖旧文件。 -->
+					<overwrite>true</overwrite>
+					<!-- 生成器的详细配置文件路径。 -->
+					<configurationFile>
+						src/main/resources/mybatis/generatorConfig.xml
+					</configurationFile>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
